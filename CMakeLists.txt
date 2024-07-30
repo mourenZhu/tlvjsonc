@@ -10,6 +10,3 @@ find_library(cJSON cjson)
 
 # The compiled library code is here
 add_subdirectory(src)
-
-install(FILES "${PROJECT_SOURCE_DIR}/include/tlvjson/tlvjson.h" DESTINATION include/tlvjson)
-install(TARGETS tlvjsonc LIBRARY DESTINATION lib)

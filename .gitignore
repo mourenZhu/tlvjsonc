@@ -72,3 +72,6 @@ CMakeUserPresets.json
 .vscode
 
 /build
+
+# test
+/local_tests
