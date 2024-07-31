@@ -3,7 +3,6 @@ This is a TCP-based application layer protocol - TLVJSON, which is written in C 
 
 # build & install
 ```shell
-mkdir build
 cd build
 cmake ..
 make

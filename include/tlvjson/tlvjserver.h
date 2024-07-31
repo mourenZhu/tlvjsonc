@@ -7,40 +7,39 @@
 #define IPV6_ADDR_LEN 40
 
 
-typedef struct tlvserv_conf
+typedef struct tlvjserver_conf
 {
     char ipv4_addr[IPV4_ADDR_LEN];
     char ipv6_addr[IPV6_ADDR_LEN];
     u_int16_t server_port;
-    struct evconnlistener *listener;
-} TLVServConf;
+    struct evconnlistener *_listener;
+} TLVJServerConf;
 
 /**
- * init
- * @param tlvServConf
+ * new
  * @return
  */
-int tlvjserver_init(TLVServConf *tlvServConf);
+TLVJServerConf *tlvjsconf_new();
 
 /**
  * free
  * @param tlvServConf
  */
-void tlvjserver_free(TLVServConf *tlvServConf);
+void tlvjsconf_free(TLVJServerConf **pTlvjServerConf);
 
 /**
  *
  * @param tlvServConf
  * @return 0 if successful, -1 if an error occurred, or 1 if we exited because no events were pending or active.
  */
-int tlvjserver_start_by_conf(TLVServConf *tlvServConf);
+int tlvjserver_start_by_conf(TLVJServerConf *tlvjServerConf);
 
 /**
  *
  * @param tlvServConf
  * @return 0 if successful, or -1 if an error occurred
  */
-int tlvjserver_exit(TLVServConf *tlvServConf);
+int tlvjserver_exit(TLVJServerConf *tlvjServerConf);
 
 
 #endif

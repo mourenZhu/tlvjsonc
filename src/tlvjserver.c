@@ -7,18 +7,19 @@
 #include "tlvjson/log.h"
 #include "tlvjson/tlvjson.h"
 
-int tlvjserver_init(TLVServConf *tlvServConf)
+TLVJServerConf *tlvjsconf_new()
 {
-    memset(tlvServConf->ipv4_addr, 0, sizeof(tlvServConf->ipv4_addr));
-    memset(tlvServConf->ipv6_addr, 0, sizeof(tlvServConf->ipv6_addr));
-    tlvServConf->server_port = 0;
-    tlvServConf->listener = NULL;
-    return 0;
+    TLVJServerConf *tlvjServerConf = malloc(sizeof(TLVJServerConf));
+    memset(tlvjServerConf->ipv4_addr, 0, sizeof(tlvjServerConf->ipv4_addr));
+    memset(tlvjServerConf->ipv6_addr, 0, sizeof(tlvjServerConf->ipv6_addr));
+    tlvjServerConf->server_port = 0;
+    tlvjServerConf->_listener = NULL;
+    return tlvjServerConf;
 }
 
-void tlvjserver_free(TLVServConf *tlvServConf)
+void tlvjsconf_free(TLVJServerConf **pTlvjServerConf)
 {
-
+    SAFE_FREE(*pTlvjServerConf);
 }
 
 static void
@@ -26,47 +27,54 @@ server_read_cb(struct bufferevent *bev, void *ctx)
 {
     /* This callback is invoked when there is data to read on bev. */
     struct evbuffer *input = bufferevent_get_input(bev);
-    TLVJSON_CBArg *tlvjsonCbArg = (TLVJSON_CBArg *)ctx;
-    TLVJSON *tlvjson = tlvjsonCbArg->tlvjson;
-    if (tlvjson->type == NULL) {
-        tlvjson->type = evbuffer_readln(input, NULL, EVBUFFER_EOL_CRLF);
-        if (tlvjson->type == NULL) {
+    TLV_CBArg *tlvCbArg = (TLV_CBArg *)ctx;
+    TLV *tlv = tlvCbArg->tlv;
+    if (tlv->type == NULL) {
+        tlv->type = evbuffer_readln(input, NULL, EVBUFFER_EOL_CRLF);
+        if (tlv->type == NULL) {
             return;
         }
     }
-    if (tlvjson->length == NULL) {
-        tlvjson->length = evbuffer_readln(input, NULL, EVBUFFER_EOL_CRLF);
-        if (tlvjson->length == NULL) {
+    if (tlv->length == NULL) {
+        tlv->length = evbuffer_readln(input, NULL, EVBUFFER_EOL_CRLF);
+        if (tlv->length == NULL) {
             return;
         }
 
     }
-    if (tlvjson->value == NULL) {
+    if (tlv->value == NULL) {
         char *endptr;
-        size_t length = strtol(tlvjson->length, &endptr, 10);
+        size_t length = strtol(tlv->length, &endptr, 10);
         if (*endptr != '\0') {
             log_error("recv err length value, errmsg: %s", endptr);
             bufferevent_free(bev);
             return;
         }
-        tlvjsonCbArg->value_total_len = length;
+        tlvCbArg->value_total_len = length;
         size_t value_size = sizeof(char ) * (length + 1);
-        tlvjson->value = malloc(value_size);
-        memset(tlvjson->value, 0, value_size);
+        tlv->value = malloc(value_size);
+        memset(tlv->value, 0, value_size);
     }
-
-
+    size_t read_len = 0;
+    read_len = bufferevent_read(bev, tlv->value + tlvCbArg->value_current_len,
+                                tlvCbArg->value_total_len - tlvCbArg->value_current_len);
+    tlvCbArg->value_current_len += read_len;
+    if (tlvCbArg->value_current_len < tlvCbArg->value_total_len) {
+        return;
+    }
+    log_info("tlv: type: %s, length: %s, value: %s", tlv->type, tlv->length, tlv->value);
+    tlv_cbarg_reset(tlvCbArg);
 }
 
 static void
 server_event_cb(struct bufferevent *bev, short events, void *ctx)
 {
-    TLVJSON_CBArg *tlvjsonCbArg = (TLVJSON_CBArg*) ctx;
+    TLV_CBArg *tlvCbArg = (TLV_CBArg*) ctx;
     if (events & BEV_EVENT_ERROR)
         log_error("Error from bufferevent");
     if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
         log_info("events: %d ,event close", events);
-        tlvjson_cbarg_free(&tlvjsonCbArg);
+        tlv_cbarg_free(&tlvCbArg);
         bufferevent_free(bev);
     }
 }
@@ -84,10 +92,10 @@ accept_conn_cb(struct evconnlistener *listener,
 
     bufferevent_set_timeouts(bev, &timeout_read, NULL);
 
-    TLVJSON *tlvjson = tlvjson_new();
-    TLVJSON_CBArg *tlvjsonCbArg = tlvjson_cbarg_new();
-    tlvjsonCbArg->tlvjson = tlvjson;
-    bufferevent_setcb(bev, server_read_cb, NULL, server_event_cb, tlvjsonCbArg);
+    TLV *tlv = tlv_new();
+    TLV_CBArg *tlvCbArg = tlv_cbarg_new();
+    tlvCbArg->tlv = tlv;
+    bufferevent_setcb(bev, server_read_cb, NULL, server_event_cb, tlvCbArg);
 
     bufferevent_enable(bev, EV_READ|EV_WRITE);
 }
@@ -102,7 +110,7 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
     event_base_loopexit(base, NULL);
 }
 
-int tlvjserver_start(TLVServConf *tlvServConf, struct sockaddr_in sin, unsigned flags, int backlog)
+int tlvjserver_start(TLVJServerConf *tlvjServerConf, struct sockaddr_in sin, unsigned flags, int backlog)
 {
     struct event_base *base;
     struct evconnlistener *listener;
@@ -127,7 +135,7 @@ int tlvjserver_start(TLVServConf *tlvServConf, struct sockaddr_in sin, unsigned 
         goto listener_err;
     }
 
-    tlvServConf->listener = listener;
+    tlvjServerConf->_listener = listener;
 
     evconnlistener_set_error_cb(listener, accept_error_cb);
 
@@ -140,11 +148,11 @@ listener_err:
     return -1;
 }
 
-int tlvjserver_start_by_conf(TLVServConf *tlvServConf)
+int tlvjserver_start_by_conf(TLVJServerConf *tlvjServerConf)
 {
     struct sockaddr_in sin;
 
-    int port = tlvServConf->server_port;
+    int port = tlvjServerConf->server_port;
 
     if (port<=0 || port>65535) {
         perror("Invalid server port");
@@ -157,9 +165,9 @@ int tlvjserver_start_by_conf(TLVServConf *tlvServConf)
     /* This is an INET address */
     sin.sin_family = AF_INET;
     /* Listen on 0.0.0.0 */
-    sin.sin_addr.s_addr = inet_addr(tlvServConf->ipv4_addr);
+    sin.sin_addr.s_addr = inet_addr(tlvjServerConf->ipv4_addr);
     /* Listen on the given port. */
     sin.sin_port = htons(port);
 
-    return tlvjserver_start(tlvServConf, sin, LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1);
+    return tlvjserver_start(tlvjServerConf, sin, LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1);
 }

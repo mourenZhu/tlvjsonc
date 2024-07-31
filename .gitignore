@@ -71,7 +71,8 @@ CMakeUserPresets.json
 /cmake-build-debug
 .vscode
 
-/build
+/build/*
+!/build/.gitkeep
 
 # test
 /local_tests

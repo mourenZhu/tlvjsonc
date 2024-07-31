@@ -3,56 +3,64 @@
 
 #include <event2/bufferevent.h>
 
-#define SAFE_FREE(ptr) \
-{ \
-    if (ptr) \
-    { \
-        free(ptr); \
-        ptr = NULL; \
-    } \
-}
+#define SAFE_FREE(ptr) do { \
+    if (ptr) {              \
+        free(ptr);          \
+        ptr = NULL;         \
+    }                       \
+} while (0)
 
-typedef struct tlvjson {
+typedef struct tlv {
     char *type;
     char *length;
     char *value;
-} TLVJSON;
+} TLV;
 
 
 /**
- * init tlvjson
+ * init tlv
  *
  * @return NULL if an error occurred
  */
-TLVJSON* tlvjson_new();
+TLV* tlv_new();
 
 /**
- * free tlvjson
- * @param tlvjson
+ * free tlv
+ * @param tlv
  */
-void tlvjson_free(TLVJSON **tlvjson);
+void tlv_free(TLV **tlv);
 
-int tlvjson_read4bufferevent(TLVJSON *tlvjson, struct bufferevent *bev);
+/**
+ * 重置tlv结构体内的数据
+ * @param tlv
+ */
+void tlv_reset(TLV *tlv);
+
+int tlv_read4bufferevent(TLV *tlv, struct bufferevent *bev);
 
 
-typedef struct tlvjson_cbarg{
-    TLVJSON *tlvjson;
+typedef struct tlv_cbarg{
+    TLV *tlv;
     size_t value_total_len;
     size_t value_current_len;
-} TLVJSON_CBArg;
+} TLV_CBArg;
 
 /**
  * init
  *
  * @return NULL if an error occurred
  */
-TLVJSON_CBArg* tlvjson_cbarg_new();
+TLV_CBArg* tlv_cbarg_new();
 
 /**
  * free
- * @param tlvjsonCbArg
+ * @param tlvCbArg
  */
-void tlvjson_cbarg_free(TLVJSON_CBArg **tlvjsonCbArg);
+void tlv_cbarg_free(TLV_CBArg **tlvCbArg);
 
-
+/**
+ * 重置tlvCbArg结构体内的值
+ * @param tlvCbArg
+ */
+void tlv_cbarg_reset(TLV_CBArg *tlvCbArg);
 #endif
