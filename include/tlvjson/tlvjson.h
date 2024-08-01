@@ -2,6 +2,7 @@
 #define TLVJSON_H
 
 #include <event2/bufferevent.h>
+#include <cjson/cJSON.h>
 
 #define SAFE_FREE(ptr) do { \
     if (ptr) {              \
@@ -63,4 +64,11 @@ void tlv_cbarg_free(TLV_CBArg **tlvCbArg);
  * @param tlvCbArg
  */
 void tlv_cbarg_reset(TLV_CBArg *tlvCbArg);
+
+typedef struct type_json {
+    char *type;
+    cJSON *json;
+} TypeJSON;
+
+
 #endif

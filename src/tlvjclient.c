@@ -7,22 +7,15 @@
 #include <arpa/inet.h>
 #include "tlvjson/log.h"
 
-TLVJClientConf* tlvjcconf_new(const char *cid, const char *s_ipv4, const char *s_ipv6, u_int16_t s_port)
+int tlvjcconf_init(TLVJClientConf *tlvjClientConf, const char *cid, const char *s_ipv4, const char *s_ipv6, u_int16_t s_port)
 {
-    TLVJClientConf *tlvjClientConf = malloc(sizeof(TLVJClientConf));
     memset(tlvjClientConf, 0, sizeof(TLVJClientConf));
     strcpy(tlvjClientConf->clientid, cid);
     strcpy(tlvjClientConf->server_ipv4_addr, s_ipv4);
     strcpy(tlvjClientConf->server_ipv6_addr, s_ipv6);
     tlvjClientConf->server_port = s_port;
-    return tlvjClientConf;
+    return 0;
 }
-
-void tlvjcconf_free(TLVJClientConf **pTlvjClientConf)
-{
-    SAFE_FREE(*pTlvjClientConf);
-}
-
 
 static void
 event_cb(struct bufferevent *bev, short events, void *ctx) {
@@ -40,7 +33,7 @@ event_cb(struct bufferevent *bev, short events, void *ctx) {
 static void
 read_cb(struct bufferevent *bev, void *ctx) {
     char buffer[256];
-    int n;
+    size_t n;
 
     while ((n = bufferevent_read(bev, buffer, sizeof(buffer))) > 0) {
         fwrite(buffer, 1, n, stdout);
