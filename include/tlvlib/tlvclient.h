@@ -1,5 +1,5 @@
-#ifndef TLVJCLIENT_H
-#define TLVJCLIENT_H
+#ifndef TLVCLIENT_H
+#define TLVCLIENT_H
 #include <stdlib.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
@@ -8,13 +8,13 @@
 #define IPV6_ADDR_LEN 40
 #define CLIENTID_LENGTH 128
 
-typedef struct tlvjclient_conf
+typedef struct tlvclient_conf
 {
     char server_ipv4_addr[IPV4_ADDR_LEN];
     char server_ipv6_addr[IPV6_ADDR_LEN];
     u_int16_t server_port;
     char clientid[CLIENTID_LENGTH+1];
-} TLVJClientConf;
+} TLVClientConf;
 
 
 /**
@@ -25,24 +25,24 @@ typedef struct tlvjclient_conf
  * @param s_port server port
  * @return 0 正常, -1 异常
  */
-int tlvjcconf_init(TLVJClientConf *tlvjClientConf, const char *cid, const char *s_ipv4, const char *s_ipv6, u_int16_t s_port);
+int tlvcconf_init(TLVClientConf *tlvClientConf, const char *cid, const char *s_ipv4, const char *s_ipv6, u_int16_t s_port);
 
 /**
  *
- * @param tlvjClientConf
+ * @param tlvClientConf
  * @return 0 正常，-1异常
  */
-int tlvjclient_start_by_conf(TLVJClientConf *tlvjClientConf);
+int tlvclient_start_by_conf(TLVClientConf *tlvClientConf);
 
 /**
  *
- * @param tlvjClientConf
+ * @param tlvClientConf
  * @return 0正常，-1异常
  */
-int tlvjclient_exit(TLVJClientConf *tlvjClientConf);
+int tlvclient_exit(TLVClientConf *tlvClientConf);
 
 
-typedef struct tlvjclient
+typedef struct tlvclient
 {
     struct event_base *base;
     struct bufferevent *bufferevent;
@@ -52,16 +52,16 @@ typedef struct tlvjclient
  * 创建一个结构体，并返回指针
  * @return
  */
-TLVJClient *tlvjclient_new();
+TLVJClient *tlvclient_new();
 
 
 /**
  * 销毁
  * @param pTlvjClient
  */
-void tlvjclient_free(TLVJClient **pTlvjClient);
+void tlvclient_free(TLVJClient **pTlvjClient);
 
 
-int tlvjclient_send_tlvjson();
+int tlvclient_send_tlvjson();
 
 #endif

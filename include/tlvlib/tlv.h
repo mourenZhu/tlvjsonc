@@ -1,5 +1,5 @@
-#ifndef TLVJSON_H
-#define TLVJSON_H
+#ifndef TLV_H
+#define TLV_H
 
 #include <event2/bufferevent.h>
 #include <cjson/cJSON.h>

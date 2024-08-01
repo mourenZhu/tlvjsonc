@@ -1,15 +1,15 @@
-#include <tlvjson/tlvjserver.h>
+#include <tlvlib/tlvserver.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
 #include <stdio.h>
-#include "tlvjson/log.h"
-#include "tlvjson/tlvjson.h"
+#include "tlvlib//log.h"
+#include "tlvlib/tlv.h"
 
-TLVJServerConf *tlvjsconf_new()
+TLVServerConf *tlvsconf_new()
 {
-    TLVJServerConf *tlvjServerConf = malloc(sizeof(TLVJServerConf));
+    TLVServerConf *tlvjServerConf = malloc(sizeof(TLVServerConf));
     memset(tlvjServerConf->ipv4_addr, 0, sizeof(tlvjServerConf->ipv4_addr));
     memset(tlvjServerConf->ipv6_addr, 0, sizeof(tlvjServerConf->ipv6_addr));
     tlvjServerConf->server_port = 0;
@@ -17,9 +17,9 @@ TLVJServerConf *tlvjsconf_new()
     return tlvjServerConf;
 }
 
-void tlvjsconf_free(TLVJServerConf **pTlvjServerConf)
+void tlvsconf_free(TLVServerConf **pTlvServerConf)
 {
-    SAFE_FREE(*pTlvjServerConf);
+    SAFE_FREE(*pTlvServerConf);
 }
 
 static void
@@ -110,7 +110,7 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
     event_base_loopexit(base, NULL);
 }
 
-int tlvjserver_start(TLVJServerConf *tlvjServerConf, struct sockaddr_in sin, unsigned flags, int backlog)
+int tlvserver_start(TLVServerConf *tlvServerConf, struct sockaddr_in sin, unsigned flags, int backlog)
 {
     struct event_base *base;
     struct evconnlistener *listener;
@@ -135,7 +135,7 @@ int tlvjserver_start(TLVJServerConf *tlvjServerConf, struct sockaddr_in sin, uns
         goto listener_err;
     }
 
-    tlvjServerConf->_listener = listener;
+    tlvServerConf->_listener = listener;
 
     evconnlistener_set_error_cb(listener, accept_error_cb);
 
@@ -148,11 +148,11 @@ listener_err:
     return -1;
 }
 
-int tlvjserver_start_by_conf(TLVJServerConf *tlvjServerConf)
+int tlvserver_start_by_conf(TLVServerConf *tlvServerConf)
 {
     struct sockaddr_in sin;
 
-    int port = tlvjServerConf->server_port;
+    int port = tlvServerConf->server_port;
 
     if (port<=0 || port>65535) {
         perror("Invalid server port");
@@ -165,9 +165,9 @@ int tlvjserver_start_by_conf(TLVJServerConf *tlvjServerConf)
     /* This is an INET address */
     sin.sin_family = AF_INET;
     /* Listen on 0.0.0.0 */
-    sin.sin_addr.s_addr = inet_addr(tlvjServerConf->ipv4_addr);
+    sin.sin_addr.s_addr = inet_addr(tlvServerConf->ipv4_addr);
     /* Listen on the given port. */
     sin.sin_port = htons(port);
 
-    return tlvjserver_start(tlvjServerConf, sin, LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1);
+    return tlvserver_start(tlvServerConf, sin, LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1);
 }

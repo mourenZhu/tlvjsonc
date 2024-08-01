@@ -1,4 +1,4 @@
-#include <tlvjson/tlvjson.h>
+#include "tlvlib/tlv.h"
 #include <stdlib.h>
 
 TLV* tlv_new()

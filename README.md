@@ -1,5 +1,5 @@
-# tlvjsonc
-This is a TCP-based application layer protocol - TLVJSON, which is written in C language and based on the C11 standard. TLV-JSON is Type-Length-Value (JSON).
+# TLVLib
+This is a TCP-based application layer protocol - TLVLib, which is written in C language and based on the C11 standard. TLVLib is Type-Length-Value Library.
 
 # build & install
 ```shell

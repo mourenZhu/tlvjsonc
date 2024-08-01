@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
-project(tlvjsonc VERSION 0.0.1
-        DESCRIPTION "Type Length Value(JSON) protocol base on TCP"
+project(tlvlib VERSION 0.0.1
+        DESCRIPTION "Type Length Value protocol base on TCP"
         LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)

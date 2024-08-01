@@ -1,19 +1,19 @@
-#include <tlvjson/tlvjclient.h>
-#include <tlvjson/tlvjson.h>
+#include <tlvlib/tlvclient.h>
+#include "tlvlib/tlv.h"
 #include <string.h>
 #include <event2/event.h>
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
 #include <arpa/inet.h>
-#include "tlvjson/log.h"
+#include "tlvlib/log.h"
 
-int tlvjcconf_init(TLVJClientConf *tlvjClientConf, const char *cid, const char *s_ipv4, const char *s_ipv6, u_int16_t s_port)
+int tlvcconf_init(TLVClientConf *tlvClientConf, const char *cid, const char *s_ipv4, const char *s_ipv6, u_int16_t s_port)
 {
-    memset(tlvjClientConf, 0, sizeof(TLVJClientConf));
-    strcpy(tlvjClientConf->clientid, cid);
-    strcpy(tlvjClientConf->server_ipv4_addr, s_ipv4);
-    strcpy(tlvjClientConf->server_ipv6_addr, s_ipv6);
-    tlvjClientConf->server_port = s_port;
+    memset(tlvClientConf, 0, sizeof(TLVClientConf));
+    strcpy(tlvClientConf->clientid, cid);
+    strcpy(tlvClientConf->server_ipv4_addr, s_ipv4);
+    strcpy(tlvClientConf->server_ipv6_addr, s_ipv6);
+    tlvClientConf->server_port = s_port;
     return 0;
 }
 
@@ -41,7 +41,7 @@ read_cb(struct bufferevent *bev, void *ctx) {
 }
 
 
-int tlvjclient_start_by_conf(TLVJClientConf *tlvjClientConf)
+int tlvclient_start_by_conf(TLVClientConf *tlvClientConf)
 {
     struct event_base *base = event_base_new();
     if (!base) {
@@ -59,7 +59,7 @@ int tlvjclient_start_by_conf(TLVJClientConf *tlvjClientConf)
     bufferevent_setcb(bev, read_cb, NULL, event_cb, NULL);
 
     if (bufferevent_socket_connect_hostname(
-            bev, NULL, AF_INET, tlvjClientConf->server_ipv4_addr, tlvjClientConf->server_port) < 0) {
+            bev, NULL, AF_INET, tlvClientConf->server_ipv4_addr, tlvClientConf->server_port) < 0) {
         log_error("Error starting connection");
         bufferevent_free(bev);
         event_base_free(base);

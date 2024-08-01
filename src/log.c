@@ -20,7 +20,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "tlvjson/log.h"
+#include "tlvlib/log.h"
 
 #define MAX_CALLBACKS 32
 
