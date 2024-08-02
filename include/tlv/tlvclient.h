@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
+#include <tlv/tlv.h>
 
 #define IPV4_ADDR_LEN 16
 #define IPV6_ADDR_LEN 40
@@ -16,6 +17,26 @@ typedef struct tlvclient_conf
     char clientid[CLIENTID_LENGTH+1];
 } TLVClientConf;
 
+typedef struct tlvclient
+{
+    struct event_base *base;
+    struct bufferevent *bev;
+    TLVClientConf *client_conf;
+} TLVClient;
+
+/**
+ * 创建一个结构体，并返回指针
+ * @return
+ */
+TLVClient *tlvclient_new();
+
+
+/**
+ * 销毁
+ * @param pTlvClient
+ */
+void tlvclient_free(TLVClient **pTlvClient);
+
 
 /**
  * 初始化客户端配置结构体
@@ -27,41 +48,32 @@ typedef struct tlvclient_conf
  */
 int tlvcconf_init(TLVClientConf *tlvClientConf, const char *cid, const char *s_ipv4, const char *s_ipv6, u_int16_t s_port);
 
+
 /**
+ * 通过配置创建client
  *
  * @param tlvClientConf
- * @return 0 正常，-1异常
- */
-int tlvclient_start_by_conf(TLVClientConf *tlvClientConf);
-
-/**
- *
- * @param tlvClientConf
- * @return 0正常，-1异常
- */
-int tlvclient_exit(TLVClientConf *tlvClientConf);
-
-
-typedef struct tlvclient
-{
-    struct event_base *base;
-    struct bufferevent *bufferevent;
-} TLVJClient;
-
-/**
- * 创建一个结构体，并返回指针
  * @return
  */
-TLVJClient *tlvclient_new();
+TLVClient *tlvclient_new_with_conf(TLVClientConf *tlvClientConf);
 
 
 /**
- * 销毁
- * @param pTlvjClient
+ *
+ * @param tlvClient
+ * @return 0 正常，-1异常
  */
-void tlvclient_free(TLVJClient **pTlvjClient);
+int tlvclient_start(TLVClient *tlvClient);
 
 
-int tlvclient_send_tlvjson();
+/**
+ * 发送字符串
+ * @param tlvClient
+ * @param type
+ * @param len
+ * @param val
+ * @return
+ */
+int tlvclient_send_string(TLVClient *tlvClient, const char *type, size_t len, const char *val);
 
 #endif

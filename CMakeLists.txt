@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(tlvlib VERSION 0.0.1
+project(libtlv VERSION 0.0.1
         DESCRIPTION "Type Length Value protocol base on TCP"
         LANGUAGES C)
 

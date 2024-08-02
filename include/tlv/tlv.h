@@ -11,9 +11,11 @@
     }                       \
 } while (0)
 
+#define SIZE_T_LENGTH sizeof(size_t)
+
 typedef struct tlv {
     char *type;
-    char *length;
+    size_t length;
     char *value;
 } TLV;
 
@@ -37,12 +39,11 @@ void tlv_free(TLV **tlv);
  */
 void tlv_reset(TLV *tlv);
 
-int tlv_read4bufferevent(TLV *tlv, struct bufferevent *bev);
-
 
 typedef struct tlv_cbarg{
     TLV *tlv;
-    size_t value_total_len;
+    char len_char[sizeof(size_t)]; // 先用字符串接收size_t
+    size_t len_current_len;
     size_t value_current_len;
 } TLV_CBArg;
 

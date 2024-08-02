@@ -1,11 +1,11 @@
-#include <tlvlib/tlvserver.h>
+#include "tlv/tlvserver.h"
 #include <string.h>
 #include <arpa/inet.h>
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
 #include <stdio.h>
-#include "tlvlib//log.h"
-#include "tlvlib/tlv.h"
+#include "tlv//log.h"
+#include "tlv/tlv.h"
 
 TLVServerConf *tlvsconf_new()
 {
@@ -27,43 +27,47 @@ server_read_cb(struct bufferevent *bev, void *ctx)
 {
     /* This callback is invoked when there is data to read on bev. */
     struct evbuffer *input = bufferevent_get_input(bev);
-    TLV_CBArg *tlvCbArg = (TLV_CBArg *)ctx;
-    TLV *tlv = tlvCbArg->tlv;
-    if (tlv->type == NULL) {
-        tlv->type = evbuffer_readln(input, NULL, EVBUFFER_EOL_CRLF);
+    int fd = bufferevent_getfd(bev);
+    size_t in_buffer_len = 0;
+
+    while ((in_buffer_len = evbuffer_get_length(input)) > 0) {
+        log_debug("fd: %d, in_buffer_len: %ld", fd, in_buffer_len);
+        TLV_CBArg *tlvCbArg = (TLV_CBArg *)ctx;
+        TLV *tlv = tlvCbArg->tlv;
         if (tlv->type == NULL) {
-            return;
+            tlv->type = evbuffer_readln(input, NULL, EVBUFFER_EOL_CRLF);
+            log_debug("fd: %d, type: %s", fd, tlv->type);
+            if (tlv->type == NULL) {
+                return;
+            }
         }
-    }
-    if (tlv->length == NULL) {
-        tlv->length = evbuffer_readln(input, NULL, EVBUFFER_EOL_CRLF);
-        if (tlv->length == NULL) {
-            return;
+        if (tlvCbArg->len_current_len < SIZE_T_LENGTH) {
+            tlvCbArg->len_current_len += bufferevent_read(
+                    bev, tlvCbArg->len_char + tlvCbArg->len_current_len, SIZE_T_LENGTH - tlvCbArg->len_current_len);
+            log_debug("fd: %d, len_current_len: %ld", fd, tlvCbArg->len_current_len);
+            if (tlvCbArg->len_current_len < 8) {
+                return;
+            }
+            memcpy(&tlv->length, tlvCbArg->len_char, SIZE_T_LENGTH);
+            log_debug("fd: %d, tlv->length: %ld", fd, tlv->length);
         }
 
-    }
-    if (tlv->value == NULL) {
-        char *endptr;
-        size_t length = strtol(tlv->length, &endptr, 10);
-        if (*endptr != '\0') {
-            log_error("recv err length value, errmsg: %s", endptr);
-            bufferevent_free(bev);
+        if (tlv->value == NULL) {
+            size_t value_size = sizeof(char) * (tlv->length + 1);
+            tlv->value = malloc(value_size);
+            memset(tlv->value, 0, value_size);
+        }
+
+        tlvCbArg->value_current_len += bufferevent_read(
+                bev, tlv->value + tlvCbArg->value_current_len,tlv->length - tlvCbArg->value_current_len);
+        log_debug("fd: %d, value_current_len: %ld", fd, tlvCbArg->value_current_len);
+        if (tlvCbArg->value_current_len < tlv->length) {
             return;
         }
-        tlvCbArg->value_total_len = length;
-        size_t value_size = sizeof(char ) * (length + 1);
-        tlv->value = malloc(value_size);
-        memset(tlv->value, 0, value_size);
+        log_info("tlv: type: %s, length: %ld, value: %s", tlv->type, tlv->length, tlv->value);
+        tlv_cbarg_reset(tlvCbArg);
+
     }
-    size_t read_len = 0;
-    read_len = bufferevent_read(bev, tlv->value + tlvCbArg->value_current_len,
-                                tlvCbArg->value_total_len - tlvCbArg->value_current_len);
-    tlvCbArg->value_current_len += read_len;
-    if (tlvCbArg->value_current_len < tlvCbArg->value_total_len) {
-        return;
-    }
-    log_info("tlv: type: %s, length: %s, value: %s", tlv->type, tlv->length, tlv->value);
-    tlv_cbarg_reset(tlvCbArg);
 }
 
 static void
@@ -84,7 +88,7 @@ accept_conn_cb(struct evconnlistener *listener,
                evutil_socket_t fd, struct sockaddr *address, int socklen,
                void *ctx)
 {
-    /* We got a new connection! Set up a bufferevent for it. */
+    log_info("new conn, fd: %d", fd);
     struct event_base *base = evconnlistener_get_base(listener);
     struct bufferevent *bev = bufferevent_socket_new(
             base, fd, BEV_OPT_CLOSE_ON_FREE);

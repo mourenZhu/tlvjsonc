@@ -1,11 +1,30 @@
-#include <tlvlib/tlvclient.h>
-#include "tlvlib/tlv.h"
+#include "tlv/tlvclient.h"
+#include "tlv/tlv.h"
 #include <string.h>
 #include <event2/event.h>
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
 #include <arpa/inet.h>
-#include "tlvlib/log.h"
+#include "tlv/log.h"
+
+#define TLV_CLIENT_WRITE_BUFFER_SIZE 1024
+char client_write_buffer[TLV_CLIENT_WRITE_BUFFER_SIZE] = {0};
+
+TLVClient *tlvclient_new()
+{
+    TLVClient *tlvClient = malloc(sizeof(TLVClient));
+    if (tlvClient) {
+        memset(tlvClient, 0, sizeof(TLVClient));
+    }
+    return tlvClient;
+}
+
+void tlvclient_free(TLVClient **pTlvClient)
+{
+    SAFE_FREE(*pTlvClient);
+}
+
+
 
 int tlvcconf_init(TLVClientConf *tlvClientConf, const char *cid, const char *s_ipv4, const char *s_ipv6, u_int16_t s_port)
 {
@@ -20,12 +39,12 @@ int tlvcconf_init(TLVClientConf *tlvClientConf, const char *cid, const char *s_i
 static void
 event_cb(struct bufferevent *bev, short events, void *ctx) {
     if (events & BEV_EVENT_CONNECTED) {
-        printf("Connected to server\n");
+        log_info("Connected to server\n");
     } else if (events & BEV_EVENT_ERROR) {
-        printf("Error in connection\n");
+        log_info("Error in connection\n");
         bufferevent_free(bev);
     } else if (events & BEV_EVENT_EOF) {
-        printf("Connection closed\n");
+        log_info("Connection closed\n");
         bufferevent_free(bev);
     }
 }
@@ -40,20 +59,19 @@ read_cb(struct bufferevent *bev, void *ctx) {
     }
 }
 
-
-int tlvclient_start_by_conf(TLVClientConf *tlvClientConf)
+TLVClient *tlvclient_new_with_conf(TLVClientConf *tlvClientConf)
 {
     struct event_base *base = event_base_new();
     if (!base) {
         log_error("Could not initialize libevent!");
-        return -1;
+        return NULL;
     }
 
     struct bufferevent *bev = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE);
     if (!bev) {
         log_error("Error constructing bufferevent!");
         event_base_free(base);
-        return 1;
+        return NULL;
     }
 
     bufferevent_setcb(bev, read_cb, NULL, event_cb, NULL);
@@ -63,11 +81,39 @@ int tlvclient_start_by_conf(TLVClientConf *tlvClientConf)
         log_error("Error starting connection");
         bufferevent_free(bev);
         event_base_free(base);
-        return -1;
+        return NULL;
     }
-
     bufferevent_enable(bev, EV_READ | EV_WRITE);
-    event_base_dispatch(base);
-    event_base_free(base);
+
+    TLVClient *tlvClient = tlvclient_new();
+    tlvClient->client_conf = tlvClientConf;
+    tlvClient->base = base;
+    tlvClient->bev = bev;
+    return tlvClient;
+}
+
+int tlvclient_start(TLVClient *tlvClient)
+{
+    event_base_dispatch(tlvClient->base);
     return 0;
+}
+
+int tlvclient_send_tlv_base(TLVClient *tlvClient, TLV *tlv)
+{
+
+}
+
+int tlvclient_send_string(TLVClient *tlvClient, const char *type, size_t len, const char *val)
+{
+    int ret = 0;
+    size_t total_size = strlen(type) + 2 + SIZE_T_LENGTH + len;
+    char *tlv = malloc(total_size);
+    memset(tlv, 0, total_size);
+    strncpy(tlv, type, strlen(type));
+    strncpy(tlv + strlen(type), "\r\n", 2);
+    memcpy(tlv + strlen(type) + 2, &len, SIZE_T_LENGTH);
+    memcpy(tlv + strlen(type) + 2 + SIZE_T_LENGTH, val, len);
+    ret = bufferevent_write(tlvClient->bev, tlv, total_size);
+    free(tlv);
+    return ret;
 }

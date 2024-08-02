@@ -20,7 +20,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "tlvlib/log.h"
+#include "tlv/log.h"
 
 #define MAX_CALLBACKS 32
 
