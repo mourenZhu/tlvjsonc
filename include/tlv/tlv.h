@@ -2,7 +2,6 @@
 #define TLV_H
 
 #include <event2/bufferevent.h>
-#include <cjson/cJSON.h>
 
 #define SAFE_FREE(ptr) do { \
     if (ptr) {              \
@@ -11,12 +10,10 @@
     }                       \
 } while (0)
 
-#define SIZE_T_LENGTH sizeof(size_t)
-
 typedef struct tlv {
     char *type;
     size_t length;
-    char *value;
+    void *value;
 } TLV;
 
 
@@ -40,36 +37,23 @@ void tlv_free(TLV **tlv);
 void tlv_reset(TLV *tlv);
 
 
-typedef struct tlv_cbarg{
-    TLV *tlv;
-    char len_char[sizeof(size_t)]; // 先用字符串接收size_t
-    size_t len_current_len;
-    size_t value_current_len;
-} TLV_CBArg;
+/**
+ * 构建一个tlv，传过来的值直接引用
+ * @param type
+ * @param val
+ * @param len
+ * @return
+ */
+TLV* tlv_new_ref(char *type, void *val, size_t len);
 
 /**
- * init
  *
- * @return NULL if an error occurred
+ * 构建一个tlv，并且传的参数不会直接引用，而是构建一个新的值，然后复制
+ * @param type
+ * @param val
+ * @param len
+ * @return
  */
-TLV_CBArg* tlv_cbarg_new();
-
-/**
- * free
- * @param tlvCbArg
- */
-void tlv_cbarg_free(TLV_CBArg **tlvCbArg);
-
-/**
- * 重置tlvCbArg结构体内的值
- * @param tlvCbArg
- */
-void tlv_cbarg_reset(TLV_CBArg *tlvCbArg);
-
-typedef struct type_json {
-    char *type;
-    cJSON *json;
-} TypeJSON;
-
+TLV* tlv_new_copy(const char *type, const void *val, size_t len);
 
 #endif

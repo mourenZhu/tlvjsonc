@@ -10,3 +10,5 @@ find_library(cJSON cjson)
 
 # The compiled library code is here
 add_subdirectory(src)
+
+add_subdirectory(tests)

@@ -98,22 +98,4 @@ int tlvclient_start(TLVClient *tlvClient)
     return 0;
 }
 
-int tlvclient_send_tlv_base(TLVClient *tlvClient, TLV *tlv)
-{
 
-}
-
-int tlvclient_send_string(TLVClient *tlvClient, const char *type, size_t len, const char *val)
-{
-    int ret = 0;
-    size_t total_size = strlen(type) + 2 + SIZE_T_LENGTH + len;
-    char *tlv = malloc(total_size);
-    memset(tlv, 0, total_size);
-    strncpy(tlv, type, strlen(type));
-    strncpy(tlv + strlen(type), "\r\n", 2);
-    memcpy(tlv + strlen(type) + 2, &len, SIZE_T_LENGTH);
-    memcpy(tlv + strlen(type) + 2 + SIZE_T_LENGTH, val, len);
-    ret = bufferevent_write(tlvClient->bev, tlv, total_size);
-    free(tlv);
-    return ret;
-}

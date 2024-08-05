@@ -25,30 +25,28 @@ void tlv_reset(TLV *tlv)
     if (tlv != NULL) {
         SAFE_FREE(tlv->type);
         SAFE_FREE(tlv->value);
+        tlv->length = 0;
     }
 }
 
-TLV_CBArg* tlv_cbarg_new()
+TLV* tlv_new_ref(char *type, void *val, size_t len)
 {
-    TLV_CBArg *tlvCbArg = malloc(sizeof(TLV_CBArg));
-    memset(tlvCbArg, 0, sizeof(TLV_CBArg));
-    return tlvCbArg;
+    TLV *tlv = tlv_new();
+    tlv->type = type;
+    tlv->length = len;
+    tlv->value = val;
+    return tlv;
 }
 
-void tlv_cbarg_free(TLV_CBArg **tlvCbArg)
+TLV* tlv_new_copy(const char *type, const void *val, size_t len)
 {
-    if (tlvCbArg != NULL && *tlvCbArg != NULL) {
-        if ((*tlvCbArg)->tlv != NULL) {
-            tlv_free(&(*tlvCbArg)->tlv);
-        }
-        SAFE_FREE(*tlvCbArg);
-    }
+    TLV *tlv = tlv_new();
+    tlv->type = malloc(strlen(type) + 1);
+    strcpy(tlv->type, type);
+    void *value = malloc(len);
+    memcpy(value, val, len);
+    tlv->value = value;
+    tlv->length = len;
+    return tlv;
 }
 
-void tlv_cbarg_reset(TLV_CBArg *tlvCbArg)
-{
-    tlv_reset(tlvCbArg->tlv);
-    memset(tlvCbArg->len_char, 0, sizeof(size_t));
-    tlvCbArg->len_current_len = 0;
-    tlvCbArg->value_current_len = 0;
-}

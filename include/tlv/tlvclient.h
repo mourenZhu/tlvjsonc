@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
-#include <tlv/tlv.h>
+#include "tlv.h"
 
 #define IPV4_ADDR_LEN 16
 #define IPV6_ADDR_LEN 40
@@ -64,16 +64,5 @@ TLVClient *tlvclient_new_with_conf(TLVClientConf *tlvClientConf);
  * @return 0 正常，-1异常
  */
 int tlvclient_start(TLVClient *tlvClient);
-
-
-/**
- * 发送字符串
- * @param tlvClient
- * @param type
- * @param len
- * @param val
- * @return
- */
-int tlvclient_send_string(TLVClient *tlvClient, const char *type, size_t len, const char *val);
 
 #endif

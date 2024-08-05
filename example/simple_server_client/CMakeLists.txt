@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(dcloudc VERSION 0.0.1
+project(simple_server_client VERSION 0.0.1
         DESCRIPTION "tlvlib example simple server client"
         LANGUAGES C)
 

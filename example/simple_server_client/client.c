@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     int ret = 0;
     for (int i = 0; i < 10; i++) {
         sprintf(msg, "test: %d", i);
-        ret = tlvclient_send_string(tlvClient, "test", strlen(msg), msg);
+//        ret = tlvclient_send_string(tlvClient, "test", strlen(msg), msg);
         printf("ret: %d\n", ret);
     }
 //    pthread_join(client_thread_t, NULL);
