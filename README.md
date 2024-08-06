@@ -1,5 +1,6 @@
 # LibTLV
-This is a TCP-based application layer protocol - TLV library, which is written in C language and based on the C11 standard. TLVLib is Type-Length-Value Library.
+LibTLV is a TCP-based application layer protocol library, which is written in C language and based on the C11 standard. TLV is Type-Length-Value.  
+The core code of libtlv is based on libevent, on which a tlv server and client are implemented. Users can use libtlv to easily communicate between the server and the client.
 
 | type(char *) | length(size_t) | value(void *) |  
 |:-------------|---------------:|--------------:|
@@ -12,6 +13,11 @@ cmake ..
 make
 make install
 ```
+
+# Development Plan
+- [X] IPV4
+- [ ] IPV6 (In development)
+- [ ] SSL (In development)
 
 # example
 - [simple_server_client](example/simple_server_client)
