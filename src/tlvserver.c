@@ -19,36 +19,29 @@ int tlvsconf_init(TLVServerConf *tlvServerConf, const char *ipv4, const char *ip
 static void
 server_read_cb(struct bufferevent *bev, void *ctx)
 {
-    /* This callback is invoked when there is data to read on bev. */
     struct evbuffer *input = bufferevent_get_input(bev);
-    int fd = bufferevent_getfd(bev);
-    size_t in_buffer_len = 0;
-    TLV_CBArg *tlvCbArg = (TLV_CBArg *)ctx;
-    int ret;
-
-    while ((in_buffer_len = evbuffer_get_length(input)) > 0) {
-        ret = tlv_read_with_bufferevent(bev, tlvCbArg);
-        if (ret == -1) { // 错误
-            tlv_cbarg_free(&tlvCbArg);
-            bufferevent_free(bev);
-            return;
+    log_debug("read cd buffer length: %ld", evbuffer_get_length(input));
+    TLV *tlv = NULL;
+    TLVServer *tlvServer = (TLVServer *)ctx;
+    while ((tlv = tlv_read_new_with_bufferevent(bev))) {
+        if (tlvServer->tlvHandler) {
+            tlvServer->tlvHandler(tlv, bev, NULL);
         }
-        if (ret == 0) {
-            return;
-        }
-        tlv_cbarg_reset(tlvCbArg);
+        tlv_free(&tlv);
     }
 }
 
 static void
 server_event_cb(struct bufferevent *bev, short events, void *ctx)
 {
-    TLV_CBArg *tlvCbArg = (TLV_CBArg*) ctx;
+    TLVServer *tlvServer = (TLVServer *)ctx;
+    if (tlvServer->eventHandler) {
+        tlvServer->eventHandler(bev, events, NULL);
+    }
     if (events & BEV_EVENT_ERROR)
         log_error("Error from bufferevent");
     if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
-        log_info("events: %d ,event close", events);
-        tlv_cbarg_free(&tlvCbArg);
+        log_debug("events: %d ,event close", events);
         bufferevent_free(bev);
     }
 }
@@ -63,15 +56,17 @@ accept_conn_cb(struct evconnlistener *listener,
     struct bufferevent *bev = bufferevent_socket_new(
             base, fd, BEV_OPT_CLOSE_ON_FREE);
     struct timeval timeout_read = {.tv_sec = 5};
+    TLVServer *tlvServer = (TLVServer *)ctx;
 
     bufferevent_set_timeouts(bev, &timeout_read, NULL);
 
-    TLV *tlv = tlv_new();
-    TLV_CBArg *tlvCbArg = tlv_cbarg_new();
-    tlvCbArg->tlv = tlv;
-    bufferevent_setcb(bev, server_read_cb, NULL, server_event_cb, tlvCbArg);
+    bufferevent_setcb(bev, server_read_cb, NULL, server_event_cb, tlvServer);
 
     bufferevent_enable(bev, EV_READ|EV_WRITE);
+
+    if (tlvServer->acceptConnHandler) {
+        tlvServer->acceptConnHandler(bev, address, socklen, NULL);
+    }
 }
 
 static void
@@ -79,8 +74,12 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
 {
     struct event_base *base = evconnlistener_get_base(listener);
     int err = EVUTIL_SOCKET_ERROR();
-    printf("Got an error %d (%s) on the listener. "
+    log_error("Got an error %d (%s) on the listener. "
               "Shutting down.\n", err, evutil_socket_error_to_string(err));
+    TLVServer *tlvServer = (TLVServer *)ctx;
+    if (tlvServer->acceptErrorHandler) {
+        tlvServer->acceptErrorHandler(NULL);
+    }
     event_base_loopexit(base, NULL);
 }
 
@@ -118,7 +117,7 @@ TLVServer* tlvserver_new_with_conf(TLVServerConf *tlvServerConf)
         return NULL;
     }
 
-    listener = evconnlistener_new_bind(base, accept_conn_cb, NULL,
+    listener = evconnlistener_new_bind(base, accept_conn_cb, tlvServer,
                                        LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1,
                                        (struct sockaddr*)&sin, sizeof(sin));
     if (!listener) {
@@ -132,6 +131,7 @@ TLVServer* tlvserver_new_with_conf(TLVServerConf *tlvServerConf)
         evconnlistener_free(listener);
         return NULL;
     }
+    tlvServer->listener = listener;
     evconnlistener_set_error_cb(listener, accept_error_cb);
 
     return tlvServer;

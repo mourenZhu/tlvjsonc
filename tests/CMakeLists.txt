@@ -11,9 +11,9 @@ find_library(tlv_core tlv_core)
 find_library(tlv_event tlv_event)
 
 
-add_executable(uthash_test uthash_test.c)
-add_executable(tlvevent_tlvhandlerhash_test tlvevent_tlvhandlerhash_test.c)
-
-target_link_libraries(tlvevent_tlvhandlerhash_test PRIVATE ${tlv_event} ${tlv_core} ${LIBEVENT2_CORE})
+#add_executable(uthash_test uthash_test.c)
+#add_executable(tlvevent_tlvhandlerhash_test tlvevent_tlvhandlerhash_test.c)
+#
+#target_link_libraries(tlvevent_tlvhandlerhash_test PRIVATE ${tlv_event} ${tlv_core} ${LIBEVENT2_CORE})
 
 

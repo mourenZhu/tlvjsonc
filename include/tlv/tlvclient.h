@@ -4,6 +4,7 @@
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include "tlv.h"
+#include "tlvevent.h"
 
 #define IPV4_ADDR_LEN 16
 #define IPV6_ADDR_LEN 40
@@ -22,6 +23,8 @@ typedef struct tlvclient
     struct event_base *base;
     struct bufferevent *bev;
     TLVClientConf *client_conf;
+    tlv_handler tlvHandler;
+    et_event_handler eventHandler;
 } TLVClient;
 
 /**

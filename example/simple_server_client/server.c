@@ -2,13 +2,22 @@
 #include <string.h>
 #include <tlv//tlvserver.h>
 
+void server_tlv_handler(TLV *tlv, struct bufferevent *bev, void *ctx)
+{
+    printf("server tlv type: %s, length: %ld, value: %s\n", tlv->type, tlv->length, (char *)tlv->value);
+    char msg[128] = "hello tlv!";
+    TLV *send_tlv = tlv_new_copy("hello", msg, strlen(msg) + 1);
+    tlv_send(bev, send_tlv);
+    tlv_free(&send_tlv);
+}
+
 int main(int argc, char *argv[])
 {
     printf("server start\n");
-//    TLVServerConf *tlvServerConf = tlvsconf_new();
-//    tlvServerConf->server_port = 8964;
-//    strcpy(tlvServerConf->ipv4_addr, "0.0.0.0");
-//    tlvserver_start_by_conf(tlvServerConf);
-//    tlvsconf_free(&tlvServerConf);
+    TLVServerConf tlvServerConf;
+    tlvsconf_init(&tlvServerConf, "0.0.0.0", "", 10816);
+    TLVServer *tlvServer = tlvserver_new_with_conf(&tlvServerConf);
+    tlvServer->tlvHandler = server_tlv_handler;
+    tlvserver_start(tlvServer);
     return 0;
 }

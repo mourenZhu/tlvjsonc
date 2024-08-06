@@ -2,51 +2,43 @@
 #define TLVEVENT_H
 
 #include "tlv.h"
-#include "uthash.h"
-
-typedef struct tlv_cbarg{
-    TLV *tlv;
-    char len_char[sizeof(size_t)]; // 先用字符串接收size_t
-    size_t len_current_len;
-    size_t value_current_len;
-} TLV_CBArg;
-
-
-typedef void (*tlvhandler) (TLV *tlv, void *arg);
-
-typedef struct tlvhandler_hash
-{
-    char *type;
-    tlvhandler handler;
-    UT_hash_handle hh;
-}TLVHandlerHash;
 
 /**
- * init
- *
- * @return NULL if an error occurred
+ * 查看 <event2/buffer.h>中的 enum evbuffer_eol_style 定义
+ * libtlv默认使用的格式为EVBUFFER_EOL_CRLF，它的值为1
  */
-TLV_CBArg* tlv_cbarg_new();
+#define TLV_TYPE_EOL_STYLE 1
+#define TLV_TYPE_EOL_CHAR \r\n
+#define TLV_TYPE_EOL_LENGTH 2
 
 /**
- * free
- * @param tlvCbArg
+ * @param tlv 就是一个tlv
+ * @param ctx 还没想好放什么，暂时是NULL
  */
-void tlv_cbarg_free(TLV_CBArg **tlvCbArg);
+typedef void (*tlv_handler) (TLV *tlv, struct bufferevent *bev, void *ctx);
 
 /**
- * 重置tlvCbArg结构体内的值
- * @param tlvCbArg
+ * @param ctx 还没想好放什么，暂时是NULL
  */
-void tlv_cbarg_reset(TLV_CBArg *tlvCbArg);
+typedef void (*et_accept_conn_handler) (struct bufferevent *bev, struct sockaddr *address, int socklen, void *ctx);
 
 /**
- * 通过bufferevent读取tlv
- * @param bev bufferevent
- * @param tlvCbArg
- * @return 0还未全读取，-1异常，1完成读取
+ * @param ctx 还没想好放什么，暂时是NULL
  */
-int tlv_read_with_bufferevent(struct bufferevent *bev, TLV_CBArg *tlvCbArg);
+typedef void (*et_accept_error_handler) (void *ctx);
+
+/**
+ * @param ctx 还没想好放什么，暂时是NULL
+ */
+typedef void (*et_event_handler) (struct bufferevent *bev, short events, void *ctx);
+
+
+/**
+ * 通过bufferevent获取一个tlv，如果不能获取一个完整的tlv则返回NULL。返回的TLV需要调用者手动销毁
+ * @param bev
+ * @return 数据足够则返回一个TLV
+ */
+TLV *tlv_read_new_with_bufferevent(struct bufferevent *bev);
 
 /**
  * tlv 通过bufferevent发送tlv数据
@@ -56,12 +48,5 @@ int tlv_read_with_bufferevent(struct bufferevent *bev, TLV_CBArg *tlvCbArg);
  * @return 0 if successful, or -1 if an error occurred
  */
 int tlv_send(struct bufferevent *bev, TLV *tlv);
-
-
-int tlvhandler_hash_add(TLVHandlerHash **head, const char *type, tlvhandler handler);
-
-TLVHandlerHash *tlvhandler_hash_find(TLVHandlerHash **head, const char *type);
-
-void tlvhandler_hash_free(TLVHandlerHash **head);
 
 #endif

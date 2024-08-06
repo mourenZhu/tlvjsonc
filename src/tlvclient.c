@@ -7,9 +7,6 @@
 #include <arpa/inet.h>
 #include "tlv/log.h"
 
-#define TLV_CLIENT_WRITE_BUFFER_SIZE 1024
-char client_write_buffer[TLV_CLIENT_WRITE_BUFFER_SIZE] = {0};
-
 TLVClient *tlvclient_new()
 {
     TLVClient *tlvClient = malloc(sizeof(TLVClient));
@@ -37,7 +34,11 @@ int tlvcconf_init(TLVClientConf *tlvClientConf, const char *cid, const char *s_i
 }
 
 static void
-event_cb(struct bufferevent *bev, short events, void *ctx) {
+client_event_cb(struct bufferevent *bev, short events, void *ctx) {
+    TLVClient *tlvClient = (TLVClient *)ctx;
+    if (tlvClient->eventHandler) {
+        tlvClient->eventHandler(bev, events, NULL);
+    }
     if (events & BEV_EVENT_CONNECTED) {
         log_info("Connected to server\n");
     } else if (events & BEV_EVENT_ERROR) {
@@ -50,12 +51,16 @@ event_cb(struct bufferevent *bev, short events, void *ctx) {
 }
 
 static void
-read_cb(struct bufferevent *bev, void *ctx) {
-    char buffer[256];
-    size_t n;
-
-    while ((n = bufferevent_read(bev, buffer, sizeof(buffer))) > 0) {
-        fwrite(buffer, 1, n, stdout);
+client_read_cb(struct bufferevent *bev, void *ctx) {
+    struct evbuffer *input = bufferevent_get_input(bev);
+    log_debug("read cd buffer length: %ld", evbuffer_get_length(input));
+    TLV *tlv = NULL;
+    TLVClient *tlvServer = (TLVClient *)ctx;
+    while ((tlv = tlv_read_new_with_bufferevent(bev))) {
+        if (tlvServer->tlvHandler) {
+            tlvServer->tlvHandler(tlv, bev, NULL);
+        }
+        tlv_free(&tlv);
     }
 }
 
@@ -73,19 +78,20 @@ TLVClient *tlvclient_new_with_conf(TLVClientConf *tlvClientConf)
         event_base_free(base);
         return NULL;
     }
+    TLVClient *tlvClient = tlvclient_new();
 
-    bufferevent_setcb(bev, read_cb, NULL, event_cb, NULL);
+    bufferevent_setcb(bev, client_read_cb, NULL, client_event_cb, tlvClient);
 
     if (bufferevent_socket_connect_hostname(
             bev, NULL, AF_INET, tlvClientConf->server_ipv4_addr, tlvClientConf->server_port) < 0) {
         log_error("Error starting connection");
         bufferevent_free(bev);
         event_base_free(base);
+        tlvclient_free(&tlvClient);
         return NULL;
     }
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 
-    TLVClient *tlvClient = tlvclient_new();
     tlvClient->client_conf = tlvClientConf;
     tlvClient->base = base;
     tlvClient->bev = bev;

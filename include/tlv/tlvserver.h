@@ -20,7 +20,10 @@ typedef struct tlvserver
 {
     TLVServerConf *conf;
     struct evconnlistener *listener;
-    TLVHandlerHash *handlerHashHead;
+    tlv_handler tlvHandler;
+    et_accept_conn_handler acceptConnHandler;
+    et_accept_error_handler acceptErrorHandler;
+    et_event_handler eventHandler;
 }TLVServer;
 
 /**

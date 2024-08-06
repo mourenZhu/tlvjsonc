@@ -16,6 +16,8 @@ typedef struct tlv {
     void *value;
 } TLV;
 
+#define TLV_LENGTH_LENGTH sizeof(size_t)
+
 
 /**
  * init tlv
